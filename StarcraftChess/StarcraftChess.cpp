@@ -9,8 +9,8 @@ int main()
 
     SetTargetFPS(120);
 
-    Model pawn = LoadModel("assets/pawn.obj");
-    Model board = LoadModel("assets/board.obj");
+    Model pawn = LoadModel("assets/models/pawn.obj");
+    Model board = LoadModel("assets/models/board.obj");
 
     raylib::Camera3D c = raylib::Camera3D({ 125,50,0}, {42,4,54}, {0,1,0}, 45, CAMERA_PERSPECTIVE);
 
@@ -30,28 +30,6 @@ int main()
         DrawFPS(0, 0);
 
         BeginMode3D(c);
-
-        // 3D
-
-        if (IsKeyDown(KEY_W))
-            p.x -= 0.5;
-
-        if (IsKeyDown(KEY_S))
-            p.x += 0.5;
-
-        if (IsKeyDown(KEY_D))
-            p.z -= 0.5;
-
-        if (IsKeyDown(KEY_A))
-            p.z += 0.5;
-
-        if (IsKeyDown(KEY_UP))
-            p.y += 0.5;
-
-        if (IsKeyDown(KEY_DOWN))
-            p.y -= 0.5;
-
-
 
         DrawModelEx(board, {0,0,0}, {1.0f, 0.0f, 0.0f}, 90.0f, {1,1,1}, WHITE);
 
