@@ -10,6 +10,7 @@ int main()
     SetTargetFPS(120);
 
     Model pawn = LoadModel("assets/models/pawn.obj");
+    Model rook = LoadModel("assets/models/rook.obj");
     Model board = LoadModel("assets/models/board.obj");
 
     raylib::Camera3D c = raylib::Camera3D({ 125,50,0}, {42,4,54}, {0,1,0}, 45, CAMERA_PERSPECTIVE);
@@ -35,9 +36,11 @@ int main()
 
         for (int i = 0; i < 8; i++)
         {
-            DrawModelEx(pawn, {64, 2, 52.5f + (10 * i)}, {1.0f,0.0f,0.0f}, -90, {1,1,1}, WHITE);
+            DrawModelEx(pawn, {64, 2, 52.0f + (10 * i)}, {1.0f,0.0f,0.0f}, -90, {1,1,1}, WHITE);
         }
 
+        DrawModelEx(rook, { 73, 2, 116 }, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, WHITE);
+        DrawModelEx(rook, { 73, 2, 49 }, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, WHITE);
 
         EndMode3D();
 
