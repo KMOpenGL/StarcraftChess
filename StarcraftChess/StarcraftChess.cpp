@@ -14,6 +14,15 @@ public:
         assetPath = path;
     }
 
+    ~Resources()
+    {
+        for (auto pair : cachedModels)
+        {
+            UnloadModel(pair.second);
+        }
+        cachedModels.clear();
+    }
+
     Model GetModel(std::string name)
     {
         if (cachedModels[name].materialCount > 0)
