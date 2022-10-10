@@ -66,6 +66,9 @@ int main()
 
         BeginMode3D(c);
 
+        // TODO:
+        // Create a system to auto posistion them based on a 2d array, ex "CreatePiece(EnumType::Pawn, {0,1});"
+
         DrawModelEx(board, {0,0,0}, {1.0f, 0.0f, 0.0f}, 90.0f, {1,1,1}, WHITE);
 
         for (int i = 0; i < 8; i++)
