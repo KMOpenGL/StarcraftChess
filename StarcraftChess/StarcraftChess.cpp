@@ -13,6 +13,7 @@ int main()
     Model rook = LoadModel("assets/models/rook.obj");
     Model board = LoadModel("assets/models/board.obj");
 
+
     raylib::Camera3D c = raylib::Camera3D({ 125,50,0}, {42,4,54}, {0,1,0}, 45, CAMERA_PERSPECTIVE);
 
     c.SetMode(CAMERA_PERSPECTIVE);
