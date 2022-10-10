@@ -1,7 +1,29 @@
 #include <iostream>
 #include "include/raylib-cpp.hpp"
+#include <map>
 
 #pragma comment (lib, "lib/raylibdll.lib")
+
+class Resources {
+private:
+    std::map<std::string, Model> cachedModels;
+    std::string assetPath;
+public:
+    Resources(std::string path)
+    {
+        assetPath = path;
+    }
+
+    Model GetModel(std::string name)
+    {
+        if (cachedModels[name].materialCount > 0)
+            return cachedModels[name];
+
+        cachedModels[name] = LoadModel((assetPath + "/models/" + name + ".obj").c_str());
+        return cachedModels[name];
+    }
+};
+
 
 int main()
 {
@@ -9,10 +31,12 @@ int main()
 
     SetTargetFPS(120);
 
-    Model pawn = LoadModel("assets/models/pawn.obj");
-    Model rook = LoadModel("assets/models/rook.obj");
-    Model board = LoadModel("assets/models/board.obj");
+    Resources r = Resources("assets");
 
+    Model pawn = r.GetModel("pawn");
+    Model rook = r.GetModel("rook");
+    Model board = r.GetModel("board");
+    Model bishop = r.GetModel("bishop");
 
     raylib::Camera3D c = raylib::Camera3D({ 125,50,0}, {42,4,54}, {0,1,0}, 45, CAMERA_PERSPECTIVE);
 
