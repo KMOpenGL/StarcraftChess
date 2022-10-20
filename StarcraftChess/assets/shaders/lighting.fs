@@ -46,36 +46,21 @@ void main()
     vec3 viewD = normalize(viewPos - fragPosition);
     vec3 specular = vec3(0.0);
 
-    // NOTE: Implement here your fragment shader code
+    vec3 pos = vec3(50,25,2);
 
-    for (int i = 0; i < MAX_LIGHTS; i++)
-    {
-        if (lights[i].enabled == 1)
-        {
-            vec3 light = vec3(0.0);
+    vec3 light = -normalize(vec3(50,0,2) - pos);
+    
+    float NdotL = max(dot(normal, light), 0.0);
+    lightDot = vec3(0.5,1,1) *NdotL;
 
-            if (lights[i].type == LIGHT_DIRECTIONAL)
-            {
-                light = -normalize(lights[i].target - lights[i].position);
-            }
+    float specCo = 0.0;
+    if (NdotL > 0.0) 
+	    specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 16.0); // 16 refers to shine
+    specular += specCo;
 
-            if (lights[i].type == LIGHT_POINT)
-            {
-                light = normalize(lights[i].position - fragPosition);
-            }
-
-            float NdotL = max(dot(normal, light), 0.0);
-            lightDot += lights[i].color.rgb*NdotL;
-
-            float specCo = 0.0;
-            if (NdotL > 0.0) specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 16.0); // 16 refers to shine
-            specular += specCo;
-        }
-    }
 
     finalColor = (texelColor*((colDiffuse + vec4(specular, 1.0))*vec4(lightDot, 1.0)));
     finalColor += texelColor*(ambient/10.0)*colDiffuse;
-
     // Gamma correction
     finalColor = pow(finalColor, vec4(1.0/2.2));
 }
