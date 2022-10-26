@@ -12,6 +12,10 @@ private:
     std::string assetPath;
     Shader lightingShader;
 public:
+    Resources()
+    {
+
+    }
     Resources(std::string path)
     {
         assetPath = path;
@@ -42,28 +46,83 @@ public:
             return cachedModels[name];
 
         Model m = cachedModels[name] = LoadModel((assetPath + "/models/" + name + ".obj").c_str());
-        for (int i = 0; i < m.materialCount; i++)
-            cachedModels[name].materials[i].shader = lightingShader;
+
         return m;
     }
+};
+
+Resources resourceInstance;
+
+enum class PieceType {
+    Pawn = 0,
+    Rook = 1,
+    Knight = 2,
+    Bishop = 3,
+    Queen = 4,
+    King = 5
 };
 
 class ChessHelper {
 public:
 
-    static Vector3 GridPos(int colX, int colY)
+    static Vector3 GridPos(float colX, float colY)
     {
-        return {29.5f - (9.5f * colY), 0, -8.0f + (10.0f * colX)};
+        return {2 - (10.0f * colY), 0, -72 + (10.0f * colX)};
     }
 
     static Vector2 WorldToScreenModel(Vector3 w, Camera c)
     {
-        w.x += 52;
-        w.z -= 32;
-
         Vector2 s = GetWorldToScreen(w, c);
 
         return s;
+    }
+
+    static Model TypeToModel(PieceType t)
+    {
+        switch (t)
+        {
+        case PieceType::Pawn:
+            return resourceInstance.GetModel("pawn");
+            break;
+        case PieceType::Rook:
+            return resourceInstance.GetModel("rook");
+            break;
+        case PieceType::Bishop:
+            return resourceInstance.GetModel("bishop");
+            break;
+        case PieceType::Knight:
+            return resourceInstance.GetModel("knight");
+            break;
+        case PieceType::Queen:
+            return resourceInstance.GetModel("queen");
+            break;
+        case PieceType::King:
+            return resourceInstance.GetModel("king");
+            break;
+        }
+    }
+};
+
+class Piece {
+public:
+    PieceType type;
+    float gX;
+    float gY;
+
+    Color c;
+
+    Piece(float gridX, float gridY, PieceType _type, Color _c) 
+    {
+        gX = gridX;
+        gY = gridY;
+        type = _type;
+        c = _c;
+    }
+
+
+    void Draw()
+    {
+        DrawModelEx(ChessHelper::TypeToModel(type), ChessHelper::GridPos(gX, gY), {1.0f, 0.0f, 0.0f}, -90.0f, {1,1,1}, c);
     }
 };
 
@@ -75,91 +134,109 @@ int main()
 
     SetTargetFPS(120);
 
-    Resources r = Resources("assets");
+    resourceInstance = Resources("assets");
 
-    Shader ls = r.GetShader("lighting");
-
-    ls.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(ls, "viewPos");
+    Shader ls = resourceInstance.GetShader("lighting");
 
     int ambientLoc = GetShaderLocation(ls, "ambient");
     float f[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
     SetShaderValue(ls, ambientLoc, f, SHADER_UNIFORM_VEC4);
 
-    r.setModelLightingShader(ls);
+    Model board = resourceInstance.GetModel("board");
 
-    Model board = r.GetModel("board");
-    Model pawn = r.GetModel("pawn");
-    Model rook = r.GetModel("rook");
-    Model bishop = r.GetModel("bishop");
-    Model knight = r.GetModel("knight");
+    Model select = resourceInstance.GetModel("selected");
 
-    Model select = r.GetModel("selected");
+    bool turn = false;
+    float turnLerp = 0;
 
-    raylib::Camera3D c = raylib::Camera3D({ 126,50,0}, {0,-25,0}, {0,1,0}, 45, CAMERA_PERSPECTIVE);
+    raylib::Camera3D c = raylib::Camera3D({ 25,60,-30}, {-40,-18,-30}, {0,1,0}, 45, CAMERA_PERSPECTIVE);
 
-    Vector3 lPos = { 50,25,2 };
-    Light l = CreateLight(LIGHT_POINT, lPos, Vector3Zero(), WHITE, ls);
-    l.enabled = true;
 
-    Vector3 p = { 0,25,50};
-
+    Piece p = Piece(5, 2, PieceType::Pawn, WHITE);
+    Piece p2 = Piece(4, 7, PieceType::Pawn, BLACK);
 
     float scale = 1;
     while (!w.ShouldClose())
     {
+        if (turn && c.position.x > -100)
+        {
+            c.position.x = Lerp(25, -100, turnLerp);
+            if (turnLerp < 0.5)
+            {
+                c.position.z = Lerp(-30, 30, turnLerp / 0.5);
+                c.position.y = Lerp(60, 90, (turnLerp / 0.5));
+            }
+            else
+            {
+                c.position.y = Lerp(90, 60, (turnLerp - 0.5) / 0.5);
+                c.position.z = Lerp(30, -30, (turnLerp - 0.5) / 0.5);
+            }
+        }
+        else if (!turn && c.position.x < 25)
+        {
+            c.position.x = Lerp(-100, 25, turnLerp);
+            if (turnLerp < 0.5)
+            {
+                c.position.z = Lerp(-30, -60, turnLerp / 0.5);
+                c.position.y = Lerp(60, 90, (turnLerp / 0.5));
+            }
+            else
+            {
+                c.position.y = Lerp(90, 60, (turnLerp - 0.5) / 0.5);
+                c.position.z = Lerp(-60, -30, (turnLerp - 0.5) / 0.5);
+            }
+        }
+
+        if (turnLerp < 1)
+            turnLerp += GetFrameTime() * 2;
+
+
         UpdateCamera(&c);
-        float cameraPos[3] = { c.position.x, c.position.y, c.position.z };
-        SetShaderValue(ls, ls.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
 
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+        if (IsKeyPressed(KEY_SPACE))
+        {
+            std::cout << "end turn" << std::endl;
+            turn = !turn;
+            turnLerp = 0;
+        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
         BeginDrawing();
 
         w.ClearBackground(DARKGRAY);
-
 
         Vector2 mousePos = GetMousePosition();
 
         DrawFPS(0, 0);
 
-        DrawText(("Mouse Pos: " + std::to_string((int)mousePos.x) + "," + std::to_string((int)mousePos.y)).c_str(), 0, 24, 18, WHITE);
-
         BeginMode3D(c);
 
-        DrawSphereWires(l.position, 2.0f, 2, 2, l.color);
-
-        DrawLine3D(lPos, { 50,0,2 }, YELLOW);
-
-        DrawModelEx(board, {0,0,-58}, {1.0f, 0.0f, 0.0f}, 90.0f, {1,1,1}, WHITE);
+        DrawModelEx(board, { 0,0,0 }, { 1.0f, 0.0f, 0.0f }, 90.0f, { 1,1,1 }, WHITE);
         
-
-        for (int i = 1; i < 9; i++)
-        {
-            DrawModelEx(pawn, ChessHelper::GridPos(i,1), {1.0f,0.0f,0.0f}, -90, {1,1,1}, WHITE);
-        }
-
-        DrawModelEx(rook, ChessHelper::GridPos(1, 0), { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, WHITE);
-        DrawModelEx(rook, ChessHelper::GridPos(8, 0), { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, WHITE);
-
-        DrawModelEx(knight, ChessHelper::GridPos(2, 0), { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, WHITE);
-        DrawModelEx(knight, ChessHelper::GridPos(7, 0), { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, WHITE);
-
-        DrawModelEx(bishop, ChessHelper::GridPos(3, 0), { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, WHITE);
-        DrawModelEx(bishop, ChessHelper::GridPos(6, 0), { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, WHITE);
-
-        EndMode3D();
-
         for (int x = 1; x < 9; x++)
         {
             for (int y = 1; y < 9; y++)
             {
                 Vector3 piecePos = ChessHelper::GridPos(x, y);
+                Vector3 oPos = piecePos;
+                piecePos.x += 8;
+                piecePos.z -= 8;
+                oPos.x -= 2;
+                oPos.z += 2;
                 Vector2 w = ChessHelper::WorldToScreenModel(piecePos, c);
-                DrawText((std::to_string((int)piecePos.x) + "," + std::to_string((int)piecePos.z)).c_str(), w.x, w.y, 20, WHITE);
-
+                Vector2 w2 = ChessHelper::WorldToScreenModel(oPos, c);
+                if (mousePos.x > w2.x && mousePos.y > w2.y && mousePos.x < w.x && mousePos.y < w.y)
+                {
+                    DrawModelEx(select, piecePos, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, WHITE);
+                }
             }
         }
 
+        p.Draw();
+        p2.Draw();
+
+        EndMode3D();
+        DrawText(("Mouse Pos: " + std::to_string((int)mousePos.x) + "," + std::to_string((int)mousePos.y)).c_str(), 0, 24, 18, WHITE);
+        DrawText(("Turn Lerp: " + std::to_string(turnLerp)).c_str(), 0, 48, 18, WHITE);
 
         EndDrawing();
     }

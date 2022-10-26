@@ -14,26 +14,7 @@ uniform vec4 colDiffuse;
 // Output fragment color
 out vec4 finalColor;
 
-#define     MAX_LIGHTS              1
-#define     LIGHT_DIRECTIONAL       0
-#define     LIGHT_POINT             1
-
-struct MaterialProperty {
-    vec3 color;
-    int useSampler;
-    sampler2D sampler;
-};
-
-struct Light {
-    int enabled;
-    int type;
-    vec3 position;
-    vec3 target;
-    vec4 color;
-};
-
 // Input lighting values
-uniform Light lights[MAX_LIGHTS];
 uniform vec4 ambient;
 uniform vec3 viewPos;
 
@@ -43,22 +24,23 @@ void main()
     vec4 texelColor = texture(texture0, fragTexCoord);
     vec3 lightDot = vec3(0.0);
     vec3 normal = normalize(fragNormal);
-    vec3 viewD = normalize(viewPos - fragPosition);
+    vec3 viewD = normalize(vec3(126,50,0) - fragPosition);
     vec3 specular = vec3(0.0);
 
     vec3 pos = vec3(50,25,2);
 
-    vec3 light = -normalize(vec3(50,0,2) - pos);
+    vec3 light = -normalize(vec3(50,0,2) - vec3(50,25,2));
     
-    float NdotL = max(dot(normal, light), 0.0);
-    lightDot = vec3(0.5,1,1) *NdotL;
+    float NdotL = 0.4;
+    lightDot = vec3(0.8,1,1) *NdotL;
+
+    finalColor = vec4(lightDot, 1);
 
     float specCo = 0.0;
     if (NdotL > 0.0) 
 	    specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 16.0); // 16 refers to shine
     specular += specCo;
-
-
+    
     finalColor = (texelColor*((colDiffuse + vec4(specular, 1.0))*vec4(lightDot, 1.0)));
     finalColor += texelColor*(ambient/10.0)*colDiffuse;
     // Gamma correction

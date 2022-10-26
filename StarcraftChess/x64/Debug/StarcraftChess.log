@@ -1,0 +1,13 @@
+﻿  StarcraftChess.cpp
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(166,55): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(167,55): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(171,62): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(172,63): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(180,56): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(181,55): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(185,62): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(186,64): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(219,60): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(219,57): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\millk290\Documents\GitHub\StarcraftChess\StarcraftChess\StarcraftChess.cpp(103): warning C4715: 'ChessHelper::TypeToModel': not all control paths return a value
+  StarcraftChess.vcxproj -> C:\Users\millk290\Documents\GitHub\StarcraftChess\x64\Debug\StarcraftChess.exe
