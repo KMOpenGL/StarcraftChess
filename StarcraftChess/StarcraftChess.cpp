@@ -6,6 +6,7 @@
 
 #pragma comment (lib, "lib/raylibdll.lib")
 
+#pragma region Resources Class
 class Resources {
 private:
     std::map<std::string, Model> cachedModels;
@@ -50,8 +51,11 @@ public:
         return m;
     }
 };
+#pragma endregion Resources Class
 
 Resources resourceInstance;
+
+#pragma region Chess Piece Classes
 
 enum class PieceType {
     Pawn = 0,
@@ -126,6 +130,8 @@ public:
     }
 };
 
+#pragma endregion Chess Piece Classes
+
 int main()
 {
     raylib::Window w = raylib::Window(1280,720, "Starcraft Chess");
@@ -158,6 +164,7 @@ int main()
     float scale = 1;
     while (!w.ShouldClose())
     {
+        #pragma region End Turn Animation
         if (turn && c.position.x > -100)
         {
             c.position.x = Lerp(25, -100, turnLerp);
@@ -189,6 +196,8 @@ int main()
 
         if (turnLerp < 1)
             turnLerp += GetFrameTime() * 2;
+
+        #pragma endregion End Turn Animation
 
 
         UpdateCamera(&c);
