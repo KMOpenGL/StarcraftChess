@@ -148,6 +148,8 @@ public:
 
     int moveLifeTime = 0;
 
+    bool hasMoved = false;
+
     Color c;
 
     Piece(float gridX, float gridY, PieceType _type, Color _c)
@@ -170,7 +172,7 @@ public:
     std::vector<Vector2> GetMoves(std::map<int, std::map<int, bool>> pieces)
     {
         std::vector<Vector2> moves;
-
+        std::vector<bool> blocked;
         switch (type)
         {
         case PieceType::Pawn:
@@ -214,7 +216,7 @@ public:
             moves.push_back({ gX + 2,gY - 1 });
             break;
         case PieceType::Bishop:
-            std::vector<bool> blocked = { false, false, false, false };
+            blocked = { false, false, false, false };
             for (int i = 1; i < 9; i++)
             {
                 if (!blocked[0])
@@ -240,6 +242,60 @@ public:
                     if (ChessHelper::IsPiece(gX - i, gY - i, pieces))
                         blocked[3] = true;
                     moves.push_back({ gX - i,gY - i });
+                }
+            }
+            break;
+        case PieceType::Queen:
+            blocked = { false, false, false, false, false, false, false, false };
+            for (int i = 1; i < 9; i++)
+            {
+                if (!blocked[0])
+                {
+                    if (ChessHelper::IsPiece(gX + i, gY + i, pieces))
+                        blocked[0] = true;
+                    moves.push_back({ gX + i,gY + i });
+                }
+                if (!blocked[1])
+                {
+                    if (ChessHelper::IsPiece(gX - i, gY + i, pieces))
+                        blocked[1] = true;
+                    moves.push_back({ gX - i,gY + i });
+                }
+                if (!blocked[2])
+                {
+                    if (ChessHelper::IsPiece(gX + i, gY - i, pieces))
+                        blocked[2] = true;
+                    moves.push_back({ gX + i,gY - i });
+                }
+                if (!blocked[3])
+                {
+                    if (ChessHelper::IsPiece(gX - i, gY - i, pieces))
+                        blocked[3] = true;
+                    moves.push_back({ gX - i,gY - i });
+                }
+                if (!blocked[4])
+                {
+                    if (ChessHelper::IsPiece(gX + i, gY, pieces))
+                        blocked[4] = true;
+                    moves.push_back({ gX + i,gY });
+                }
+                if (!blocked[5])
+                {
+                    if (ChessHelper::IsPiece(gX - i, gY, pieces))
+                        blocked[5] = true;
+                    moves.push_back({ gX - i,gY });
+                }
+                if (!blocked[6])
+                {
+                    if (ChessHelper::IsPiece(gX, gY + i, pieces))
+                        blocked[6] = true;
+                    moves.push_back({ gX,gY + i });
+                }
+                if (!blocked[7])
+                {
+                    if (ChessHelper::IsPiece(gX, gY - i, pieces))
+                        blocked[7] = true;
+                    moves.push_back({ gX,gY - i});
                 }
             }
             break;
@@ -285,6 +341,7 @@ public:
         lastY = std::roundf(gY);
         toX = x;
         toY = y;
+        hasMoved = true;
 
         lastMoveTime = 0;
     }
@@ -349,8 +406,8 @@ int main()
     Piece p2 = Piece(4, 7, PieceType::Pawn, BLACK);
     Piece p3 = Piece(3, 1, PieceType::Knight, WHITE);
     Piece p4 = Piece(2, 1, PieceType::Bishop, WHITE);
-
-    std::vector<Piece> pieces = {p, p2, p3, p4};
+    Piece p5 = Piece(4, 1, PieceType::Queen, WHITE);
+    std::vector<Piece> pieces = {p, p2, p3, p4, p5};
 
     std::vector<Vector2> highlights = {};
 
@@ -405,12 +462,15 @@ int main()
         #pragma region Gameplay
 
         bool mDown = IsMouseButtonDown(0);
+        bool mReleased = IsMouseButtonReleased(0);
 
         if (IsKeyPressed(KEY_SPACE))
         {
             std::cout << "end turn" << std::endl;
             turn = !turn;
             turnLerp = 0;
+            for (Piece& p : pieces)
+                p.hasMoved = false;
         }
 
         #pragma endregion Gameplay
@@ -474,17 +534,19 @@ int main()
             // Kinda jank
 
             if (ai)
-                if ((currentTurn && p.c.r == 255 && turn) || p.c.r == 0)
+                if ((p.c.r == 255 && turn) || p.c.r == 0)
                     continue;
             // Check if you clicked on em
 
-            if (ChessHelper::Tile_IsHovered(p.gX, p.gY, c, turn))
+            bool canMove = ((p.c.r == 255 && !turn) || (p.c.r == 0 && turn)) && !p.hasMoved;
+
+            if (ChessHelper::Tile_IsHovered(p.gX, p.gY, c, turn) && selected == NULL && canMove)
             {
                 wipeHighlights = false;
                 // would be o^2 if this wasn't just one piece. Luckily it is only one piece
                 highlights = p.GetMoves(boardBool);
 
-                if (mDown)
+                if (mReleased)
                 {
                     selected = &p;
                     selectedPiece = true;
@@ -492,7 +554,7 @@ int main()
             }
         }
 
-        for (Vector2 highlight : highlights)
+        for (Vector2& highlight : highlights)
         {
             Vector3 pos = ChessHelper::GridPos(highlight.x, highlight.y);
             // center
@@ -501,6 +563,33 @@ int main()
             pos.y += 0.1;
             Color cc = YELLOW;
             cc.a = 125;
+
+            bool stop = false;
+
+            int pId = 0;
+            int takeId = -1;
+            for (Piece& p : pieces)
+            {
+                if (p.gX == highlight.x && p.gY == highlight.y)
+                {
+                    if (currentTurn && p.c.r == 255)
+                    {
+                        stop = true;
+                        break;
+                    }
+                    else if (!currentTurn && p.c.r == 0)
+                    {
+                        stop = true;
+                        break;
+                    }
+                    else
+                        takeId = pId;
+                }
+                pId++;
+            }
+
+            if (stop)
+                continue;
 
             DrawModelEx(select, pos, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, cc);
 
@@ -511,6 +600,9 @@ int main()
                 if (mDown && selected)
                 {
                     selected->Move(highlight.x, highlight.y);
+                    if (takeId != -1)
+                        pieces.erase(pieces.begin() + takeId);
+
                     selected = NULL;
                 }
             }
@@ -531,6 +623,8 @@ int main()
         EndDrawing();
         #pragma endregion Draw
     }
+
+
 
     return 0;
 }
