@@ -308,8 +308,6 @@ public:
     }
 };
 
-#pragma endregion Chess Piece Classes
-
 std::map<int, std::map<int, bool>> convertBoardIntoBools(std::vector<Piece> pieces)
 {
     std::map<int, std::map<int, bool>> board;
@@ -318,6 +316,9 @@ std::map<int, std::map<int, bool>> convertBoardIntoBools(std::vector<Piece> piec
 
     return board;
 }
+
+#pragma endregion Chess Piece Classes
+
 
 int main()
 {
