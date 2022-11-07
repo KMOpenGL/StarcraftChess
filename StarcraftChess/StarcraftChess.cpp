@@ -409,6 +409,7 @@ int main()
 
     Font menuFont = resourceInstance.GetFont("Arial Bold");
     Texture2D menuBG = resourceInstance.GetTexture("menuBG");
+    Texture2D aiCheckbox = resourceInstance.GetTexture("AI_Checkbox");
 
     raylib::Camera3D c = raylib::Camera3D({ 25,60,-30}, {-40,-18,-30}, {0,1,0}, 45, CAMERA_PERSPECTIVE);
 
@@ -440,7 +441,15 @@ int main()
 
     Color clearColor = { 67,67,67,255 };
 
-    while (!w.ShouldClose())
+    float startLerpX = 25;
+    float startLerpY = 60;
+    float startLerpZ = -30;
+
+    float speedModifier = 2;
+
+    bool shouldClose = false;
+
+    while (!shouldClose)
     {
         UpdateCamera(&c);
         if (!menu)
@@ -451,6 +460,9 @@ int main()
 #pragma region End Turn Animation
             if (turn && c.position.x > -100)
             {
+                startLerpX = -100;
+                startLerpZ = -60;
+                startLerpY = 90;
                 c.position.x = Lerp(25, -100, turnLerp);
                 if (turnLerp < 0.5)
                 {
@@ -465,7 +477,7 @@ int main()
             }
             else if (!turn && c.position.x < 25)
             {
-                c.position.x = Lerp(-100, 25, turnLerp);
+                c.position.x = Lerp(startLerpX, 25, turnLerp);
                 if (turnLerp < 0.5)
                 {
                     c.position.z = Lerp(-30, -60, turnLerp / 0.5);
@@ -473,13 +485,16 @@ int main()
                 }
                 else
                 {
-                    c.position.y = Lerp(90, 60, (turnLerp - 0.5) / 0.5);
-                    c.position.z = Lerp(-60, -30, (turnLerp - 0.5) / 0.5);
+                    c.position.y = Lerp(startLerpY, 60, (turnLerp - 0.5) / 0.5);
+                    c.position.z = Lerp(startLerpZ, -30, (turnLerp - 0.5) / 0.5);
                 }
             }
 
             if (turnLerp < 1)
-                turnLerp += GetFrameTime() * 2;
+                turnLerp += GetFrameTime() * speedModifier;
+
+            if (speedModifier > 2 || speedModifier < 2)
+                speedModifier = Lerp(speedModifier, 2, 0.01);
 
 #pragma endregion End Turn Animation
 
@@ -656,6 +671,16 @@ int main()
         if (IsKeyPressed(KEY_UP))
             menuSelected--;
 
+        bool enter = false;
+
+        if (IsKeyPressed(KEY_ENTER))
+            enter = true;
+
+        Vector2 mPos = GetMousePosition();
+
+        if ((mPos.x > 164 && mPos.y > 108 && mPos.x < 228 && mPos.y < 172) && IsMouseButtonReleased(0))
+            ai = !ai;
+
         if (menuSelected > 1)
             menuSelected = 0;
         if (menuSelected < 0)
@@ -698,16 +723,37 @@ int main()
 
         DrawTexture(menuBG, -360, 0, WHITE);
 
+        if (!ai)
+            DrawTextureEx(aiCheckbox, { 164, 108 }, 0, 0.25, RED);
+        else
+            DrawTextureEx(aiCheckbox, { 164, 108 }, 0, 0.25, GREEN);
+
         DrawTextEx(menuFont, "Starcraft Chess", { 25,25 }, 64, 1, WHITE);
         switch (menuSelected)
         {
         case 0:
             DrawTextEx(menuFont, "PLAY", { 25,104 }, 42, 1, WHITE);
             DrawTextEx(menuFont, "QUIT", { 25,158 }, 42, 1, DARKGRAY);
+            if (enter)
+            {
+                menu = false;
+                turn = false;
+                turnLerp = 0.5;
+                menuLerp = 0;
+                speedModifier = 0.4;
+                startLerpX = c.position.x;
+                startLerpY = c.position.y;
+                startLerpZ = c.position.z;
+
+                // Start Pieces
+
+            }
             break;
         case 1:
             DrawTextEx(menuFont, "PLAY", { 25,104 }, 42, 1, DARKGRAY);
             DrawTextEx(menuFont, "QUIT", { 25,158 }, 42, 1, WHITE);
+            if (enter)
+                shouldClose = true;
             break;
         }
 
@@ -716,6 +762,8 @@ int main()
 #pragma endregion Menu
         }
     }
+
+    CloseWindow();
 
 
 
