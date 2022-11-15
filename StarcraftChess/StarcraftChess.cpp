@@ -334,6 +334,19 @@ public:
             if (!ChessHelper::IsPiece(gX - 1, gY, pieces))
                 moves.push_back({ gX - 1,gY });
             break;
+        case PieceType::Rook:
+            for (int i = 1; i < 9; i++)
+            {
+                if (!ChessHelper::IsPiece(gX, gY + i, pieces))
+                    moves.push_back({ gX,gY + i });
+                if (!ChessHelper::IsPiece(gX, gY - i, pieces))
+                    moves.push_back({ gX,gY - i });
+                if (!ChessHelper::IsPiece(gX + i, gY, pieces))
+                    moves.push_back({gX + i,gY});
+                if (!ChessHelper::IsPiece(gX - i, gY, pieces))
+                    moves.push_back({ gX - i,gY });
+            }
+            break;
         }
 
         // Clean moves to check for off board stuff
