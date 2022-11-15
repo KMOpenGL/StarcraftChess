@@ -11,7 +11,7 @@ class Resources {
 private:
     std::map<std::string, Model> cachedModels;
     std::string assetPath;
-    Shader lightingShader;
+    Shader outlineShader;
 public:
     Resources()
     {
@@ -22,9 +22,9 @@ public:
         assetPath = path;
     }
 
-    void setModelLightingShader(Shader s)
+    void setModelOutlineShader(Shader s)
     {
-        lightingShader = s;
+        outlineShader = s;
     }
 
     ~Resources()
@@ -46,19 +46,20 @@ public:
         return LoadFont((assetPath + "/fonts/" + name + ".ttf").c_str());
     }
 
-    Shader GetShader(std::string name)
+    Shader GetShader(std::string vs, std::string fs)
     {
-        return LoadShader((assetPath + "/shaders/" + name + ".vs").c_str(),
-            (assetPath + "/shaders/" + name + ".fs").c_str());
+        return LoadShader((vs.size() > 0 ? (assetPath + "/shaders/" + vs + ".vs").c_str() : ""),
+            fs.size() > 0 ? (assetPath + "/shaders/" + fs + ".fs").c_str() : "");
     }
 
-    Model GetModel(std::string name)
+    Model& GetModel(std::string name)
     {
         if (cachedModels[name].materialCount > 0)
             return cachedModels[name];
 
         Model m = cachedModels[name] = LoadModel((assetPath + "/models/" + name + ".obj").c_str());
-
+        /*for (int i = 0; i < m.materialCount; i++)
+            cachedModels[name].materials[i].shader = outlineShader;*/
         return m;
     }
 };
@@ -310,6 +311,29 @@ public:
                 }
             }
             break;
+        case PieceType::King:
+            // I don't wanna talk about this code... lol
+            if (!ChessHelper::IsPiece(gX, gY - 1, pieces))
+                moves.push_back({ gX,gY - 1 });
+            if (!ChessHelper::IsPiece(gX - 1, gY - 1, pieces))
+                moves.push_back({ gX - 1,gY - 1 });
+            if (!ChessHelper::IsPiece(gX, gY + 1, pieces))
+                moves.push_back({ gX,gY + 1 });
+            if (!ChessHelper::IsPiece(gX + 1, gY + 1, pieces))
+                moves.push_back({ gX + 1,gY + 1 });
+            if (!ChessHelper::IsPiece(gX + 1, gY - 1, pieces))
+                moves.push_back({ gX + 1,gY - 1 });
+            if (!ChessHelper::IsPiece(gX + 1, gY - 1, pieces))
+                moves.push_back({ gX + 1,gY - 1 });
+            if (!ChessHelper::IsPiece(gX - 1, gY + 1, pieces))
+                moves.push_back({ gX - 1,gY + 1 });
+            if (!ChessHelper::IsPiece(gX - 1, gY + 1, pieces))
+                moves.push_back({ gX - 1,gY + 1 });
+            if (!ChessHelper::IsPiece(gX + 1, gY , pieces))
+                moves.push_back({ gX + 1,gY });
+            if (!ChessHelper::IsPiece(gX - 1, gY, pieces))
+                moves.push_back({ gX - 1,gY });
+            break;
         }
 
         // Clean moves to check for off board stuff
@@ -403,6 +427,10 @@ int main()
 
     resourceInstance = Resources("assets");
 
+    //Shader outline = resourceInstance.GetShader("", "outline");
+
+    //resourceInstance.setModelOutlineShader(outline);
+
     Model board = resourceInstance.GetModel("board");
 
     Model select = resourceInstance.GetModel("selected");
@@ -410,6 +438,9 @@ int main()
     Font menuFont = resourceInstance.GetFont("Arial Bold");
     Texture2D menuBG = resourceInstance.GetTexture("menuBG");
     Texture2D aiCheckbox = resourceInstance.GetTexture("AI_Checkbox");
+    Texture2D actionBar = resourceInstance.GetTexture("Action_Bar_UI");
+    Texture2D actionBarBorder = resourceInstance.GetTexture("Action_Item_Border_UI");
+
 
     raylib::Camera3D c = raylib::Camera3D({ 25,60,-30}, {-40,-18,-30}, {0,1,0}, 45, CAMERA_PERSPECTIVE);
 
@@ -653,9 +684,16 @@ int main()
                 highlights.clear();
 
             EndMode3D();
-            DrawText(("Mouse Pos: " + std::to_string((int)mousePos.x) + "," + std::to_string((int)mousePos.y)).c_str(), 0, 24, 18, WHITE);
-            DrawText(("Turn Lerp: " + std::to_string(turnLerp)).c_str(), 0, 48, 18, WHITE);
-            DrawText(("Highlights: " + std::to_string(highlights.size())).c_str(), 0, 72, 18, WHITE);
+
+            Vector2 aPos = { -24, (float)w.GetHeight() - (actionBar.height - 42) };
+
+            Color aColor = WHITE;
+
+            if (mousePos.x > aPos.x && mousePos.y > aPos.y && mousePos.x < aPos.x + actionBar.width && mousePos.y < aPos.y + actionBar.height)
+                aColor.a = 128;
+
+            DrawTextureEx(actionBar, aPos, 0, 1, aColor);
+
 
             EndDrawing();
 #pragma endregion Draw
@@ -746,7 +784,13 @@ int main()
                 startLerpZ = c.position.z;
 
                 // Start Pieces
-
+                pieces.clear();
+                pieces.push_back(Piece(4, 1, PieceType::King, WHITE));
+                pieces.push_back(Piece(4, 2, PieceType::Pawn, WHITE));
+                pieces.push_back(Piece(5, 2, PieceType::Pawn, WHITE));
+                pieces.push_back(Piece(4, 8, PieceType::King, BLACK));
+                pieces.push_back(Piece(4, 7, PieceType::Pawn, BLACK));
+                pieces.push_back(Piece(5, 7, PieceType::Pawn, BLACK));
             }
             break;
         case 1:
