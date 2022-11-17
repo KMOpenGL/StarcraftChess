@@ -424,6 +424,43 @@ std::map<int, std::map<int, bool>> convertBoardIntoBools(std::vector<Piece> piec
 
 #pragma endregion Chess Piece Classes
 
+#pragma region UI Classes
+
+typedef int (*t_uiClick)(std::string);
+
+struct UIItem {
+    Texture2D texture;
+    std::string detail;
+
+    t_uiClick callback;
+};
+
+class ChessUI {
+public:
+    Texture2D actionBar;
+    Texture2D actionBarItemBorder;
+    Texture2D actionBarItemBG;
+    std::vector<UIItem> items;
+
+    ChessUI(Resources& resourceInstance)
+    {
+        actionBar = resourceInstance.GetTexture("Action_Bar_UI");
+        actionBarItemBorder = resourceInstance.GetTexture("Action_Item_Border_UI");
+        actionBarItemBG = resourceInstance.GetTexture("Action_Item_Background_UI");
+    }
+
+    void Draw()
+    {
+        Vector2 aPos = { -24, 720.0f - (actionBar.height - 42) };
+
+        Color aColor = WHITE;
+
+        DrawTextureEx(actionBar, aPos, 0, 1, aColor);
+    }
+};
+
+#pragma endregion
+
 
 int main()
 {
@@ -451,11 +488,8 @@ int main()
     Font menuFont = resourceInstance.GetFont("Arial Bold");
     Texture2D menuBG = resourceInstance.GetTexture("menuBG");
     Texture2D aiCheckbox = resourceInstance.GetTexture("AI_Checkbox");
-    Texture2D actionBar = resourceInstance.GetTexture("Action_Bar_UI");
-    Texture2D actionBarBorder = resourceInstance.GetTexture("Action_Item_Border_UI");
 
-
-    raylib::Camera3D c = raylib::Camera3D({ 25,60,-30}, {-40,-18,-30}, {0,1,0}, 45, CAMERA_PERSPECTIVE);
+    raylib::Camera3D c = raylib::Camera3D({ 25,60,-30}, {-40,-18,-30}, {0,1,0}, 75, CAMERA_PERSPECTIVE);
 
     // Animation value
 
@@ -492,6 +526,8 @@ int main()
     float speedModifier = 2;
 
     bool shouldClose = false;
+
+    ChessUI cUi = ChessUI(resourceInstance);
 
     while (!shouldClose)
     {
@@ -570,10 +606,11 @@ int main()
 
             BeginMode3D(c);
 
+#pragma region 3D
+
             DrawModelEx(board, { 0,0,0 }, { 1.0f, 0.0f, 0.0f }, 90.0f, { 1,1,1 }, WHITE);
 
             // Selection box
-
 
             for (int x = 1; x < 9; x++)
             {
@@ -698,17 +735,15 @@ int main()
 
             EndMode3D();
 
-            Vector2 aPos = { -24, (float)w.GetHeight() - (actionBar.height - 42) };
+#pragma endregion 3D
 
-            Color aColor = WHITE;
+#pragma region 2D
 
-            if (mousePos.x > aPos.x && mousePos.y > aPos.y && mousePos.x < aPos.x + actionBar.width && mousePos.y < aPos.y + actionBar.height)
-                aColor.a = 128;
 
-            DrawTextureEx(actionBar, aPos, 0, 1, aColor);
-
+            cUi.Draw();
 
             EndDrawing();
+#pragma endregion 2D
 #pragma endregion Draw
 
 #pragma endregion Game
@@ -795,6 +830,8 @@ int main()
                 startLerpX = c.position.x;
                 startLerpY = c.position.y;
                 startLerpZ = c.position.z;
+
+                cUi.items.clear();
 
                 // Start Pieces
                 pieces.clear();
