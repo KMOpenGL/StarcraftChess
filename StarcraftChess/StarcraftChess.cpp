@@ -3,6 +3,7 @@
 #include <map>
 #define RLIGHTS_IMPLEMENTATION
 #include "rlights.h"
+#include <functional>
 
 #pragma comment (lib, "lib/raylibdll.lib")
 
@@ -80,12 +81,13 @@ enum class PieceType {
 
 class ChessHelper {
 public:
-
+    // Helper function to convert a 2d array into 3d cords
     static Vector3 GridPos(float colX, float colY)
     {
         return { 2 - (10.0f * colY), 0, -72 + (10.0f * colX) };
     }
 
+    // Helper function to check if a 2d array set of cords is hovered by the mouse
     static bool Tile_IsHovered(float x, float y, Camera c, bool isFlipped = false)
     {
         Vector2 mPos = GetMousePosition();
@@ -108,6 +110,7 @@ public:
         return false;
     }
 
+    // Helper function to check if a 2d array set of cords has a piece
     static bool IsPiece(float x, float y, std::map<int, std::map<int, bool>> pieces)
     {
         int xx = std::roundf(x);
@@ -116,6 +119,7 @@ public:
         return pieces[xx][yy];
     }
 
+    // Helper function to convert a piece type to it's model.
     static Model TypeToModel(PieceType t)
     {
         switch (t)
@@ -180,7 +184,7 @@ public:
         c = _c;
     }
 
-
+    // Function to obtain the moves of the current piece.
     std::vector<Vector2> GetMoves(std::map<int, std::map<int, bool>> pieces)
     {
         std::vector<Vector2> moves;
@@ -426,13 +430,13 @@ std::map<int, std::map<int, bool>> convertBoardIntoBools(std::vector<Piece> piec
 
 #pragma region UI Classes
 
-typedef int (*t_uiClick)(std::string);
-
 struct UIItem {
     Texture2D texture;
     std::string detail;
 
-    t_uiClick callback;
+    std::function<void(std::type_identity_t<std::string>)> callback;
+
+    Vector2 pos;
 };
 
 class ChessUI {
@@ -442,20 +446,87 @@ public:
     Texture2D actionBarItemBG;
     std::vector<UIItem> items;
 
+    Vector2 anchorPos;
+
     ChessUI(Resources& resourceInstance)
     {
         actionBar = resourceInstance.GetTexture("Action_Bar_UI");
         actionBarItemBorder = resourceInstance.GetTexture("Action_Item_Border_UI");
         actionBarItemBG = resourceInstance.GetTexture("Action_Item_Background_UI");
+        anchorPos = { 0, 720.0f - (actionBar.height - 42) };
     }
 
-    void Draw()
+    void Click(Vector2 mouse)
     {
-        Vector2 aPos = { -24, 720.0f - (actionBar.height - 42) };
+        for (UIItem& item : items)
+        {
+            // AABB Collision to check for a click
+            if (item.pos.x < mouse.x &&
+                item.pos.x + actionBarItemBorder.width > mouse.x &&
+                item.pos.y < mouse.y &&
+                item.pos.y + actionBarItemBorder.height > mouse.y)
+                item.callback(item.detail);
+        }
+    }
 
+    void CreateItem(std::string detail, std::string image, std::function<void(std::type_identity_t<std::string>)> callback, Resources& resourceInstance)
+    {
+        UIItem nI;
+        nI.callback = callback;
+        nI.detail = detail;
+        nI.texture = resourceInstance.GetTexture(image);
+
+        // Calculate some arbitary stuff because columns and rows and I love ui design
+        float max = (actionBar.width - actionBarItemBorder.width) / (actionBarItemBorder.width);
+        int pos = items.size() + 1;
+        int col = std::floor(pos / max);
+        // if col > 1, move it down twice the width (width and height should be the same), and contiune the higher it goes.
+        // Max to check if its below 1 and return 1 as you dont want to do anything less than that cuz it's cringe.
+        int row = std::max(std::floor((actionBarItemBorder.width + 12) * col), 1.0);
+
+        int colX = (anchorPos.x + (actionBarItemBorder.width / 3)) + ((actionBarItemBorder.width + 12) * (items.size() - ((max - 1) * col)));
+
+        // Create a vector and add the offset to the anchor pos.
+
+        nI.pos = Vector2();
+        nI.pos.x = anchorPos.x + (actionBarItemBorder.width / 2) + colX;
+        nI.pos.y = anchorPos.y + (actionBarItemBorder.height / 2) + row;
+        items.push_back(nI);
+    }
+
+    void DeleteItem(std::string detail)
+    {
+        for (int i = 0; i < items.size(); i++)
+        {
+            if (detail == items[i].detail) // If it's detail is the specified one
+            {
+                items.erase(items.begin() + i); // Erase it
+                break; // Break so we stop looping because we shift the index stuff. it'll cause a out of bounds null ref if we dont.
+            }
+        }
+    }
+
+    void Draw(Vector2 mouse)
+    {
         Color aColor = WHITE;
 
-        DrawTextureEx(actionBar, aPos, 0, 1, aColor);
+        DrawTextureEx(actionBar, anchorPos, 0, 1, aColor);
+
+        // Draw items
+
+        for (UIItem& item : items)
+        {
+            if (item.pos.x < mouse.x &&
+                item.pos.x + actionBarItemBorder.width > mouse.x &&
+                item.pos.y < mouse.y &&
+                item.pos.y + actionBarItemBorder.height > mouse.y)
+                aColor.a = 180;
+            else
+                aColor.a = 255;
+            DrawTextureEx(actionBarItemBG, item.pos, 0, 1, aColor);
+            DrawTextureEx(item.texture, item.pos, 0, 1, aColor);
+            DrawTextureEx(actionBarItemBorder, item.pos, 0, 1, aColor);
+        }
     }
 };
 
@@ -583,6 +654,12 @@ int main()
             bool mDown = IsMouseButtonDown(0);
             bool mReleased = IsMouseButtonReleased(0);
 
+            Vector2 mousePos = GetMousePosition();
+
+
+            if (mReleased)
+                cUi.Click(mousePos);
+
             if (IsKeyPressed(KEY_SPACE))
             {
                 std::cout << "end turn" << std::endl;
@@ -599,8 +676,6 @@ int main()
             BeginDrawing();
 
             w.ClearBackground(clearColor);
-
-            Vector2 mousePos = GetMousePosition();
 
             DrawFPS(0, 0);
 
@@ -740,7 +815,7 @@ int main()
 #pragma region 2D
 
 
-            cUi.Draw();
+            cUi.Draw(mousePos);
 
             EndDrawing();
 #pragma endregion 2D
@@ -832,6 +907,32 @@ int main()
                 startLerpZ = c.position.z;
 
                 cUi.items.clear();
+
+                cUi.CreateItem("test", "Move_Icon", [](std::string name) {
+                    std::cout << "clicked test!" << std::endl;
+                }, resourceInstance);
+                cUi.CreateItem("test", "Knight_Black_Icon", [](std::string name) {
+                    std::cout << "clicked test!" << std::endl;
+                    }, resourceInstance);
+                cUi.CreateItem("test", "Mine_Icon", [](std::string name) {
+                    std::cout << "clicked test!" << std::endl;
+                    }, resourceInstance);
+
+                cUi.CreateItem("test", "Bishop_Icon", [](std::string name) {
+                    std::cout << "clicked test!" << std::endl;
+                    }, resourceInstance);
+
+                cUi.CreateItem("test", "King_Black_Icon", [](std::string name) {
+                    std::cout << "clicked test!" << std::endl;
+                    }, resourceInstance);
+
+                cUi.CreateItem("test", "Take_Icon", [](std::string name) {
+                    std::cout << "clicked test!" << std::endl;
+                    }, resourceInstance);
+
+                cUi.CreateItem("test", "Pawn_Icon", [](std::string name) {
+                    std::cout << "clicked test!" << std::endl;
+                    }, resourceInstance);
 
                 // Start Pieces
                 pieces.clear();
