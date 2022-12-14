@@ -446,6 +446,8 @@ public:
     Texture2D actionBarItemBG;
     std::vector<UIItem> items;
 
+    bool isHovered = false;
+
     Vector2 anchorPos;
 
     ChessUI(Resources& resourceInstance)
@@ -508,6 +510,15 @@ public:
 
     void Draw(Vector2 mouse)
     {
+        // AABB Collision to check for hover
+        if (anchorPos.x < mouse.x &&
+            anchorPos.x + actionBar.width > mouse.x &&
+            anchorPos.y < mouse.y &&
+            anchorPos.y + actionBar.height > mouse.y)
+            isHovered = true;
+        else
+            isHovered = false;
+
         Color aColor = WHITE;
 
         DrawTextureEx(actionBar, anchorPos, 0, 1, aColor);
@@ -578,6 +589,8 @@ int main()
     bool ai = false; // You can control both sets of pieces OR an AI controls black and you can control white
 
     bool menu = true; // Whether or not if we should show the menu
+
+    bool isMoving = false;
 
     Piece* selected = NULL;
 
@@ -712,7 +725,9 @@ int main()
                 DrawModelEx(select, pos, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, GREEN);
             }
 
-            bool wipeHighlights = true;
+            bool wipeHighlights = false;
+            if (isMoving)
+                wipeHighlights = false;
 
             std::map<int, std::map<int, bool>> boardBool = convertBoardIntoBools(pieces);
 
@@ -735,78 +750,83 @@ int main()
 
                 if (ChessHelper::Tile_IsHovered(p.gX, p.gY, c, turn) && selected == NULL && canMove)
                 {
-                    wipeHighlights = false;
-                    // would be o^2 if this wasn't just one piece. Luckily it is only one piece
-                    highlights = p.GetMoves(boardBool);
-
                     if (mReleased)
                     {
+                        wipeHighlights = false;
+                        // would be o^2 if this wasn't just one piece. Luckily it is only one piece
+                        highlights = p.GetMoves(boardBool);
                         selected = &p;
+                        cUi.items.clear();
+                        cUi.CreateItem("move", "Move_Icon", [&](std::string name) {
+                            isMoving = true;
+                        }, resourceInstance);
                         selectedPiece = true;
                     }
                 }
             }
 
-            for (Vector2& highlight : highlights)
+   
+                for (Vector2& highlight : highlights)
+                {
+                    Vector3 pos = ChessHelper::GridPos(highlight.x, highlight.y);
+                    // center
+                    pos.x += 8;
+                    pos.z -= 8;
+                    pos.y += 0.1;
+                    Color cc = YELLOW;
+                    cc.a = 125;
+                    DrawModelEx(select, pos, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, YELLOW);
+                    bool stop = false;
+
+                    int pId = 0;
+                    int takeId = -1;
+                    for (Piece& p : pieces)
+                    {
+                        if (p.gX == highlight.x && p.gY == highlight.y)
+                        {
+                            if (currentTurn && p.c.r == 255)
+                            {
+                                stop = true;
+                                break;
+                            }
+                            else if (!currentTurn && p.c.r == 0)
+                            {
+                                stop = true;
+                                break;
+                            }
+                            else
+                                takeId = pId;
+                        }
+                        pId++;
+                    }
+
+                    if (stop)
+                        continue;
+
+
+                    // detect if you click here
+
+                    if (ChessHelper::Tile_IsHovered(highlight.x, highlight.y, c, turn))
+                    {
+                        if (mDown && selected && isMoving)
+                        {
+                            selected->Move(highlight.x, highlight.y);
+                            if (takeId != -1)
+                                pieces.erase(pieces.begin() + takeId);
+                            isMoving = false;
+                            selected = NULL;
+                        }
+                    }
+                }
+           
+
+
+            if (mDown && !selectedPiece && !cUi.isHovered)
             {
-                Vector3 pos = ChessHelper::GridPos(highlight.x, highlight.y);
-                // center
-                pos.x += 8;
-                pos.z -= 8;
-                pos.y += 0.1;
-                Color cc = YELLOW;
-                cc.a = 125;
-
-                bool stop = false;
-
-                int pId = 0;
-                int takeId = -1;
-                for (Piece& p : pieces)
-                {
-                    if (p.gX == highlight.x && p.gY == highlight.y)
-                    {
-                        if (currentTurn && p.c.r == 255)
-                        {
-                            stop = true;
-                            break;
-                        }
-                        else if (!currentTurn && p.c.r == 0)
-                        {
-                            stop = true;
-                            break;
-                        }
-                        else
-                            takeId = pId;
-                    }
-                    pId++;
-                }
-
-                if (stop)
-                    continue;
-
-                DrawModelEx(select, pos, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, cc);
-
-                // detect if you click here
-
-                if (ChessHelper::Tile_IsHovered(highlight.x, highlight.y, c, turn))
-                {
-                    if (mDown && selected)
-                    {
-                        selected->Move(highlight.x, highlight.y);
-                        if (takeId != -1)
-                            pieces.erase(pieces.begin() + takeId);
-
-                        selected = NULL;
-                    }
-                }
-            }
-
-
-            if (mDown && !selectedPiece)
+                cUi.items.clear();
                 selected = NULL;
-
-            if (wipeHighlights && selected == NULL)
                 highlights.clear();
+            }
 
             EndMode3D();
 
@@ -908,40 +928,20 @@ int main()
 
                 cUi.items.clear();
 
-                cUi.CreateItem("test", "Move_Icon", [](std::string name) {
-                    std::cout << "clicked test!" << std::endl;
-                }, resourceInstance);
-                cUi.CreateItem("test", "Knight_Black_Icon", [](std::string name) {
-                    std::cout << "clicked test!" << std::endl;
-                    }, resourceInstance);
-                cUi.CreateItem("test", "Mine_Icon", [](std::string name) {
-                    std::cout << "clicked test!" << std::endl;
-                    }, resourceInstance);
-
-                cUi.CreateItem("test", "Bishop_Icon", [](std::string name) {
-                    std::cout << "clicked test!" << std::endl;
-                    }, resourceInstance);
-
-                cUi.CreateItem("test", "King_Black_Icon", [](std::string name) {
-                    std::cout << "clicked test!" << std::endl;
-                    }, resourceInstance);
-
-                cUi.CreateItem("test", "Take_Icon", [](std::string name) {
-                    std::cout << "clicked test!" << std::endl;
-                    }, resourceInstance);
-
-                cUi.CreateItem("test", "Pawn_Icon", [](std::string name) {
-                    std::cout << "clicked test!" << std::endl;
-                    }, resourceInstance);
-
                 // Start Pieces
                 pieces.clear();
-                pieces.push_back(Piece(4, 1, PieceType::King, WHITE));
+                /*pieces.push_back(Piece(4, 1, PieceType::King, WHITE));
                 pieces.push_back(Piece(4, 2, PieceType::Pawn, WHITE));
                 pieces.push_back(Piece(5, 2, PieceType::Pawn, WHITE));
                 pieces.push_back(Piece(4, 8, PieceType::King, BLACK));
                 pieces.push_back(Piece(4, 7, PieceType::Pawn, BLACK));
-                pieces.push_back(Piece(5, 7, PieceType::Pawn, BLACK));
+                pieces.push_back(Piece(5, 7, PieceType::Pawn, BLACK));*/
+                // normal chess
+                for (int i = 1; i < 9; i++)
+                {
+                    pieces.push_back(Piece(i, 2, PieceType::Pawn, WHITE));
+                    pieces.push_back(Piece(i, 7, PieceType::Pawn, BLACK));
+                }
             }
             break;
         case 1:
