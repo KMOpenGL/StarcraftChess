@@ -434,8 +434,8 @@ struct UIItem {
     Texture2D texture;
     std::string detail;
 
-    std::function<void(std::type_identity_t<std::string>)> callback;
-
+    std::function<void(std::type_identity_t<UIItem*>)> callback;
+    bool isSelected = false;
     Vector2 pos;
 };
 
@@ -443,6 +443,7 @@ class ChessUI {
 public:
     Texture2D actionBar;
     Texture2D actionBarItemBorder;
+    Texture2D actionBarItemBorderSelected;
     Texture2D actionBarItemBG;
     std::vector<UIItem> items;
 
@@ -454,8 +455,27 @@ public:
     {
         actionBar = resourceInstance.GetTexture("Action_Bar_UI");
         actionBarItemBorder = resourceInstance.GetTexture("Action_Item_Border_UI");
+        actionBarItemBorderSelected = resourceInstance.GetTexture("Action_Item_Border_UI_Selected");
         actionBarItemBG = resourceInstance.GetTexture("Action_Item_Background_UI");
         anchorPos = { 0, 720.0f - (actionBar.height - 42) };
+    }
+
+    void SetSelected(bool selected, std::string detail)
+    {
+        for (UIItem& item : items)
+        {
+            if (item.detail == detail)
+                item.isSelected = selected;
+        }
+    }
+
+    void Click(std::string detail)
+    {
+        for (UIItem& item : items)
+        {
+            if (item.detail == detail)
+                item.callback(&item);
+        }
     }
 
     void Click(Vector2 mouse)
@@ -467,11 +487,11 @@ public:
                 item.pos.x + actionBarItemBorder.width > mouse.x &&
                 item.pos.y < mouse.y &&
                 item.pos.y + actionBarItemBorder.height > mouse.y)
-                item.callback(item.detail);
+                item.callback(&item);
         }
     }
 
-    void CreateItem(std::string detail, std::string image, std::function<void(std::type_identity_t<std::string>)> callback, Resources& resourceInstance)
+    void CreateItem(std::string detail, std::string image, std::function<void(std::type_identity_t<UIItem*>)> callback, Resources& resourceInstance)
     {
         UIItem nI;
         nI.callback = callback;
@@ -536,7 +556,10 @@ public:
                 aColor.a = 255;
             DrawTextureEx(actionBarItemBG, item.pos, 0, 1, aColor);
             DrawTextureEx(item.texture, item.pos, 0, 1, aColor);
-            DrawTextureEx(actionBarItemBorder, item.pos, 0, 1, aColor);
+            if (!item.isSelected)
+                DrawTextureEx(actionBarItemBorder, item.pos, 0, 1, aColor);
+            else
+                DrawTextureEx(actionBarItemBorderSelected, item.pos, 0, 1, aColor);
         }
     }
 };
@@ -757,9 +780,11 @@ int main()
                         highlights = p.GetMoves(boardBool);
                         selected = &p;
                         cUi.items.clear();
-                        cUi.CreateItem("move", "Move_Icon", [&](std::string name) {
+                        cUi.CreateItem("move", "Move_Icon", [&](UIItem* item) {
+                            item->isSelected = true;
                             isMoving = true;
                         }, resourceInstance);
+                        cUi.Click("move");
                         selectedPiece = true;
                     }
                 }
@@ -773,9 +798,9 @@ int main()
                     pos.x += 8;
                     pos.z -= 8;
                     pos.y += 0.1;
-                    Color cc = YELLOW;
+                    Color cc = WHITE;
                     cc.a = 125;
-                    DrawModelEx(select, pos, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, YELLOW);
+                    DrawModelEx(select, pos, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, cc);
                     bool stop = false;
 
                     int pId = 0;
