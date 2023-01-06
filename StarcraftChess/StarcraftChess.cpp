@@ -79,6 +79,13 @@ enum class PieceType {
     King = 5
 };
 
+struct DataPiece {
+    int x, y;
+    PieceType type;
+    bool enPassant;
+    Color c;
+};
+
 class ChessHelper {
 public:
     // Helper function to convert a 2d array into 3d cords
@@ -110,13 +117,29 @@ public:
         return false;
     }
 
-    // Helper function to check if a 2d array set of cords has a piece
-    static bool IsPiece(float x, float y, std::map<int, std::map<int, bool>> pieces)
+    // Helper function to check if a piece is in a spot
+    static DataPiece IsPiece(float x, float y, std::list<DataPiece> pieces)
     {
-        int xx = std::roundf(x);
-        int yy = std::roundf(y);
+        DataPiece pp;
+        pp.enPassant = false;
+        pp.type = PieceType::King;
+        pp.x = -1;
+        pp.y = -1;
+        for (DataPiece p : pieces)
+        {
+            int xx = std::roundf(x);
+            int yy = std::roundf(y);
 
-        return pieces[xx][yy];
+            if (std::roundf(p.x) == xx && std::roundf(p.y) == yy)
+                pp = p;
+        }
+        return pp;
+    }
+
+    // Helper function to convert the board state into a smaller data state
+    static std::list<DataPiece> ConvertToDataState(std::list<Piece> pieces)
+    {
+        
     }
 
     // Helper function to convert a piece type to it's model.
@@ -158,6 +181,8 @@ private:
 public:
     bool isMoving = false;
 
+    bool enPassantable = false;
+
     PieceType type;
     float gX;
     float gY;
@@ -185,171 +210,28 @@ public:
     }
 
     // Function to obtain the moves of the current piece.
-    std::vector<Vector2> GetMoves(std::map<int, std::map<int, bool>> pieces)
+    std::vector<Vector2> GetMoves(std::list<DataPiece> pieces)
     {
         std::vector<Vector2> moves;
         std::vector<bool> blocked;
         switch (type)
         {
         case PieceType::Pawn:
-            if (c.r == 255) // white
-            {
-                if (moveLifeTime < 1) // 2 possible moves rather than 1
-                {
-                    for(int i = 1; i < 3; i++)
-                        if (!ChessHelper::IsPiece(gX, gY + i, pieces))
-                            moves.push_back({ gX,gY + i });
-                }
-                else
-                {
-                    if (!ChessHelper::IsPiece(gX, gY + 1, pieces))
-                        moves.push_back({gX,gY + 1.0f});
-                }
-            }
-            else
-            {
-                if (moveLifeTime < 1) // 2 possible moves rather than 1
-                {
-                    for (int i = 1; i < 3; i++)
-                        if (!ChessHelper::IsPiece(gX, gY + i, pieces))
-                            moves.push_back({ gX,gY - i });
-                }
-                else
-                {
-                    if (!ChessHelper::IsPiece(gX, gY + 1, pieces))
-                        moves.push_back({ gX,gY - 1.0f });
-                }
-            }
+            
             break;
         case PieceType::Knight:
-            moves.push_back({ gX - 1,gY + 2 });
-            moves.push_back({ gX - 2,gY + 1 });
-            moves.push_back({ gX - 1,gY - 2 });
-            moves.push_back({ gX - 2,gY - 1 });
-            moves.push_back({ gX + 1,gY + 2 });
-            moves.push_back({ gX + 2,gY + 1 });
-            moves.push_back({ gX + 1,gY - 2 });
-            moves.push_back({ gX + 2,gY - 1 });
+
             break;
         case PieceType::Bishop:
-            blocked = { false, false, false, false };
-            for (int i = 1; i < 9; i++)
-            {
-                if (!blocked[0])
-                {
-                    if (ChessHelper::IsPiece(gX + i, gY + i, pieces))
-                        blocked[0] = true;
-                    moves.push_back({ gX + i,gY + i });
-                }
-                if (!blocked[1])
-                {
-                    if (ChessHelper::IsPiece(gX - i, gY + i, pieces))
-                        blocked[1] = true;
-                    moves.push_back({ gX - i,gY + i });
-                }
-                if (!blocked[2])
-                {
-                    if (ChessHelper::IsPiece(gX + i, gY - i, pieces))
-                        blocked[2] = true;
-                    moves.push_back({ gX + i,gY - i });
-                }
-                if (!blocked[3])
-                {
-                    if (ChessHelper::IsPiece(gX - i, gY - i, pieces))
-                        blocked[3] = true;
-                    moves.push_back({ gX - i,gY - i });
-                }
-            }
+            
             break;
         case PieceType::Queen:
-            blocked = { false, false, false, false, false, false, false, false };
-            for (int i = 1; i < 9; i++)
-            {
-                if (!blocked[0])
-                {
-                    if (ChessHelper::IsPiece(gX + i, gY + i, pieces))
-                        blocked[0] = true;
-                    moves.push_back({ gX + i,gY + i });
-                }
-                if (!blocked[1])
-                {
-                    if (ChessHelper::IsPiece(gX - i, gY + i, pieces))
-                        blocked[1] = true;
-                    moves.push_back({ gX - i,gY + i });
-                }
-                if (!blocked[2])
-                {
-                    if (ChessHelper::IsPiece(gX + i, gY - i, pieces))
-                        blocked[2] = true;
-                    moves.push_back({ gX + i,gY - i });
-                }
-                if (!blocked[3])
-                {
-                    if (ChessHelper::IsPiece(gX - i, gY - i, pieces))
-                        blocked[3] = true;
-                    moves.push_back({ gX - i,gY - i });
-                }
-                if (!blocked[4])
-                {
-                    if (ChessHelper::IsPiece(gX + i, gY, pieces))
-                        blocked[4] = true;
-                    moves.push_back({ gX + i,gY });
-                }
-                if (!blocked[5])
-                {
-                    if (ChessHelper::IsPiece(gX - i, gY, pieces))
-                        blocked[5] = true;
-                    moves.push_back({ gX - i,gY });
-                }
-                if (!blocked[6])
-                {
-                    if (ChessHelper::IsPiece(gX, gY + i, pieces))
-                        blocked[6] = true;
-                    moves.push_back({ gX,gY + i });
-                }
-                if (!blocked[7])
-                {
-                    if (ChessHelper::IsPiece(gX, gY - i, pieces))
-                        blocked[7] = true;
-                    moves.push_back({ gX,gY - i});
-                }
-            }
-            break;
+            
         case PieceType::King:
             // I don't wanna talk about this code... lol
-            if (!ChessHelper::IsPiece(gX, gY - 1, pieces))
-                moves.push_back({ gX,gY - 1 });
-            if (!ChessHelper::IsPiece(gX - 1, gY - 1, pieces))
-                moves.push_back({ gX - 1,gY - 1 });
-            if (!ChessHelper::IsPiece(gX, gY + 1, pieces))
-                moves.push_back({ gX,gY + 1 });
-            if (!ChessHelper::IsPiece(gX + 1, gY + 1, pieces))
-                moves.push_back({ gX + 1,gY + 1 });
-            if (!ChessHelper::IsPiece(gX + 1, gY - 1, pieces))
-                moves.push_back({ gX + 1,gY - 1 });
-            if (!ChessHelper::IsPiece(gX + 1, gY - 1, pieces))
-                moves.push_back({ gX + 1,gY - 1 });
-            if (!ChessHelper::IsPiece(gX - 1, gY + 1, pieces))
-                moves.push_back({ gX - 1,gY + 1 });
-            if (!ChessHelper::IsPiece(gX - 1, gY + 1, pieces))
-                moves.push_back({ gX - 1,gY + 1 });
-            if (!ChessHelper::IsPiece(gX + 1, gY , pieces))
-                moves.push_back({ gX + 1,gY });
-            if (!ChessHelper::IsPiece(gX - 1, gY, pieces))
-                moves.push_back({ gX - 1,gY });
-            break;
+            
         case PieceType::Rook:
-            for (int i = 1; i < 9; i++)
-            {
-                if (!ChessHelper::IsPiece(gX, gY + i, pieces))
-                    moves.push_back({ gX,gY + i });
-                if (!ChessHelper::IsPiece(gX, gY - i, pieces))
-                    moves.push_back({ gX,gY - i });
-                if (!ChessHelper::IsPiece(gX + i, gY, pieces))
-                    moves.push_back({gX + i,gY});
-                if (!ChessHelper::IsPiece(gX - i, gY, pieces))
-                    moves.push_back({ gX - i,gY });
-            }
+
             break;
         }
 
@@ -391,6 +273,11 @@ public:
         moveLifeTime++;
         lastX = std::roundf(gX);
         lastY = std::roundf(gY);
+        int diff = std::abs(lastY - y);
+        if (diff == 2)
+            enPassantable = true;
+        else
+            enPassantable = false;
         toX = x;
         toY = y;
         hasMoved = true;
@@ -752,7 +639,6 @@ int main()
             if (isMoving)
                 wipeHighlights = false;
 
-            std::map<int, std::map<int, bool>> boardBool = convertBoardIntoBools(pieces);
 
             bool selectedPiece = false;
 
@@ -777,7 +663,7 @@ int main()
                     {
                         wipeHighlights = false;
                         // would be o^2 if this wasn't just one piece. Luckily it is only one piece
-                        highlights = p.GetMoves(boardBool);
+                        
                         selected = &p;
                         cUi.items.clear();
                         cUi.CreateItem("move", "Move_Icon", [&](UIItem* item) {
@@ -800,7 +686,6 @@ int main()
                     pos.y += 0.1;
                     Color cc = WHITE;
                     cc.a = 125;
-                    DrawModelEx(select, pos, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, cc);
                     bool stop = false;
 
                     int pId = 0;
@@ -825,6 +710,12 @@ int main()
                         pId++;
                     }
 
+                    if (takeId != -1)
+                    {
+                        cc = RED;
+                        cc.a = 125;
+                    }
+                    DrawModelEx(select, pos, { 1.0f,0.0f,0.0f }, -90, { 1,1,1 }, cc);
                     if (stop)
                         continue;
 
